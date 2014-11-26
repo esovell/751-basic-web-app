@@ -1,11 +1,26 @@
 require 'rack'
+require 'puma'
 require 'erubis'
 
+class Counter
+  
+  def initialize
+    @data = Hash.new {|hash,value| hash[value] = 0 }
+  end
+  def count(name)
+    if name
+      @data[name] += 1
+    end
+  end
+  def to_a
+    @data.to_a
+  end
+end
 
 class Handler
 
   def initialize
-    @data =  Hash.new {|hash,value| hash[value] = 0 }
+    @model = Counter.new
   end
 
   def call(env)
@@ -15,15 +30,17 @@ class Handler
     # home page
     when '/'
       # 200 OK normal response
-      response = ['200', {"Content-Type" => 'text/html'}, [render("index.erb", {data: @data.to_a})]]
+      response = ['200', {"Content-Type" => 'text/html'}, [render("index.erb", {data: @model.to_a})]]
     # 'remember-me' accepts form data
     when '/remember-me'
       name = req.params["name"]
-      if name
-        @data[name] += 1
-      end
+      if name.downcase == "emily"
+        response = ['200', {'Content-Type' => 'text/html'}, [render("emily.erb", {data: env})]]
+      else
+        @model.count(name)
       # 302 Found: Redirect
       response = ['302', {'Content-Type' => 'text','Location' => '/'}, ['302 found'] ]
+      end
     when '/favicon.ico'
       # 403: Forbidden esponse code forces browsers to stop requesting favicons
       response = ['403', {}, ["Not going to happen."]]
